@@ -62,6 +62,35 @@ curl -X POST localhost:8000/ask -H 'Content-Type: application/json' -d '{"questi
 uv run pytest
 ```
 
+### See what a query retrieves
+
+`docs-rag-search` prints the chunks a query pulls back and their scores, so you can see why an answer came out the way it did. `--compare` runs all four methods on the same query:
+
+```text
+$ uv run docs-rag-search "how do I make a query parameter optional" -k 3 --compare
+vector (3 hits)
+   1    0.8333  tutorial/query-params.md  §  Query Parameters > Optional parameters
+   2    0.8180  tutorial/query-params.md  §  Query Parameters > Required query parameters
+   3    0.8100  tutorial/query-params-str-validations.md  §  Query Parameters and String Validations > Alternative (old): `Query` as the default value
+
+keyword (3 hits)
+   1    0.0222  tutorial/query-params-str-validations.md  §  Query Parameters and String Validations > Alternative (old): `Query` as the default value
+   2    0.0169  tutorial/query-params.md  §  Query Parameters > Required query parameters
+   3    0.0045  tutorial/body.md  §  Request Body > Create your data model
+
+hybrid (3 hits)
+   1    0.0323  tutorial/query-params-str-validations.md  §  Query Parameters and String Validations > Alternative (old): `Query` as the default value
+   2    0.0323  tutorial/query-params.md  §  Query Parameters > Required query parameters
+   3    0.0303  tutorial/query-params-str-validations.md  §  Query Parameters and String Validations > Default values
+
+hybrid_rerank (3 hits)
+   1    8.7663  tutorial/query-params.md  §  Query Parameters > Optional parameters
+   2    8.5362  tutorial/query-params.md  §  Query Parameters > Required query parameters
+   3    8.2423  tutorial/query-params-str-validations.md  §  Query Parameters and String Validations > Alternative (old): `Query` as the default value
+```
+
+The section that actually answers the question ("Optional parameters") is missing from keyword search, and fusion drops it out of the top 3 because it only ranked well on one side. The cross-encoder reads the question and each chunk together and puts it back at #1. Scores are not comparable across methods: cosine similarity, `ts_rank_cd`, RRF and reranker logits are on different scales. Add `--text` to print the start of each chunk, `--config large` for the 2,000-character chunks.
+
 ## Corpus
 
 `corpus/` is the English FastAPI documentation at tag `0.143.1`, copyright Sebastián Ramírez, used under the MIT License (`corpus/LICENSE-fastapi`). This project is not affiliated with FastAPI.
